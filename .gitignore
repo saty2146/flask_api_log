@@ -99,3 +99,10 @@ ENV/
 
 # mypy
 .mypy_cache/
+
+
+#saty added
+venv/
+boxes.py
+*.pyc
+*.swp
