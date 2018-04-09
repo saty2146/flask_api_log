@@ -104,5 +104,6 @@ ENV/
 #saty added
 venv/
 boxes.py
+wsgi.py
 *.pyc
 *.swp

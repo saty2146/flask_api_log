@@ -14,8 +14,6 @@ api = Api(app)
 
 def get_logs(date, severity, box):
     
-    SEVERITY = ('note', 'warn', 'err')
-
     DATESTAMP_RE = r'(\w+\s+\d+)'   
     TIMESTAMP_RE = r'(\d+:\d+:\d+)' 
     DEVICE_IP_RE = r'(\S+)'       
@@ -27,7 +25,15 @@ def get_logs(date, severity, box):
 
     keys = ['datestamp', 'timestamp', 'error_severity', 'device', 'error_code', 'error_message']
     result_log = []
-    filename = str(date) + '.log'
+    datestamp = str(date)
+    year = datestamp[0:4]
+    month = datestamp[4:6]
+    day = datestamp[-2:]
+    filename = datestamp + '.log'
+    ip_address_list = [ip for ip,name in boxes.iteritems() if name == box]
+    ip_address = ip_address_list[0]
+    workdir = '/var/log/cisco/' + year + '/' + month + '/' + ip_address + '/'
+    filepath = workdir + filename
 
     SYSLOG_RE = (
         DATESTAMP_RE + COLUMN_DELIMITER_RE +
@@ -37,23 +43,23 @@ def get_logs(date, severity, box):
         ERROR_CODE_RE + COLUMN_DELIMITER_RE +
         ERROR_MESSAGE_RE)
 
-    for root, dirs, files in os.walk("/home/tibor/Downloads/restapi/", topdown=False):
-        for name in files:
-            if name == filename:
-                with open(os.path.join(root, name), mode = 'r') as syslog:
-                    log_lines = syslog.readlines()
-                    for line in reversed(log_lines):
-                        matched  = re.match(SYSLOG_RE, line)
-                        if not matched:
-                            continue
-                        values = matched.groups()
-                        result = dict(zip(keys, values))
-                        result['device'] = boxes[result['device']]
-
-                        if result['error_severity'] == severity and result['device'] == box:
-                            final.append(result)
-                        else:
-                            pass
+    if os.path.isfile(filepath):
+	with open(filepath, mode = 'r') as syslog:
+	    log_lines = syslog.readlines()
+	    for line in reversed(log_lines):
+		matched  = re.match(SYSLOG_RE, line)
+		if not matched:
+		    continue
+		values = matched.groups()
+		result = dict(zip(keys, values))
+		result['device'] = boxes[result['device']]
+		
+		if severity == 'all':
+		    result_log.append(result)
+		elif result['error_severity'] == severity and result['device'] == box:
+		    result_log.append(result)
+		else:
+		    pass
     return result_log
                         
 class Syslog(Resource):
@@ -69,4 +75,4 @@ class Syslog(Resource):
 api.add_resource(Syslog, '/syslog') # Route_1
 
 if __name__ == '__main__':
-    app.run(port=5002)
+    app.run(host="217.73.28.16", port=5002)
